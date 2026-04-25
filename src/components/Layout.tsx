@@ -25,8 +25,8 @@ export default function Layout({ currentPage, onNavigate, children }: Props) {
       <aside className="w-52 flex-shrink-0 border-r border-zinc-800/60 flex flex-col">
         <div className="px-5 py-5 border-b border-zinc-800/60">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-emerald-500/20 flex items-center justify-center">
-              <Target size={13} className="text-emerald-400" />
+            <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }}>
+              <Target size={13} style={{ color: 'var(--accent)' }} />
             </div>
             <span className="text-sm font-semibold text-zinc-200 tracking-wide">Goal Tracker</span>
           </div>

@@ -266,7 +266,8 @@ export default function PomodoroTimer({ onClose }: Props) {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded transition-colors"
+                  className="flex-1 py-1.5 text-sm text-white rounded hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'var(--accent)' }}
                 >
                   Log it
                 </button>

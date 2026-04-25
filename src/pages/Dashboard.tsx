@@ -42,7 +42,7 @@ export default function Dashboard({ onNavigate }: Props) {
           label="Available XP"
           value={available.toLocaleString()}
           sub="spend on rewards"
-          icon={<Zap size={16} className="text-emerald-500" />}
+          icon={<Zap size={16} className="text-[var(--accent)]" />}
         />
         <StatCard
           label="Streak"
@@ -66,7 +66,7 @@ export default function Dashboard({ onNavigate }: Props) {
         </div>
         <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+            className="h-full bg-[var(--accent)] rounded-full transition-all duration-700"
             style={{ width: `${(xpInLevel / 500) * 100}%` }}
           />
         </div>
@@ -98,7 +98,7 @@ export default function Dashboard({ onNavigate }: Props) {
                     </span>
                     <span className="text-sm text-zinc-300 truncate">{log.activityName}</span>
                   </div>
-                  <span className="text-xs text-emerald-500 flex-shrink-0">+{log.xpEarned}</span>
+                  <span className="text-xs text-[var(--accent)] flex-shrink-0">+{log.xpEarned}</span>
                 </div>
               ))}
               {todayLogs.length > 5 && (

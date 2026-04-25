@@ -165,7 +165,7 @@ export default function Goals() {
                   <div className="flex-1 min-w-0 pr-3">
                     <div className="flex items-center gap-2 mb-0.5">
                       {goal.completed ? (
-                        <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />
+                        <CheckCircle2 size={14} className="text-[var(--accent)] flex-shrink-0" />
                       ) : (
                         <Circle size={14} className="text-zinc-700 flex-shrink-0" />
                       )}
@@ -202,7 +202,7 @@ export default function Goals() {
                 <div className="ml-5 h-1 bg-zinc-800 rounded-full overflow-hidden mb-2">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      goal.completed ? 'bg-emerald-500' : 'bg-violet-500'
+                      goal.completed ? 'bg-[var(--accent)]' : 'bg-violet-500'
                     }`}
                     style={{ width: `${pct}%` }}
                   />

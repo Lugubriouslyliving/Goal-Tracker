@@ -30,7 +30,7 @@ export default function Rewards() {
           <h2 className="text-xl font-semibold text-zinc-100">Rewards</h2>
           <p className="text-sm text-zinc-500 mt-0.5">
             Balance:{' '}
-            <span className="text-emerald-400 font-medium">{available.toLocaleString()} XP</span>
+            <span className="text-[var(--accent)] font-medium">{available.toLocaleString()} XP</span>
           </p>
         </div>
         <button
@@ -122,7 +122,7 @@ export default function Rewards() {
                   <div className="flex items-start justify-between mb-2">
                     <span className="text-2xl">{reward.icon}</span>
                     <div className="flex items-center gap-1">
-                      <div className="flex items-center gap-0.5 text-xs text-emerald-500">
+                      <div className="flex items-center gap-0.5 text-xs text-[var(--accent)]">
                         <Zap size={11} />
                         {reward.cost.toLocaleString()}
                       </div>
@@ -141,9 +141,10 @@ export default function Rewards() {
                   <button
                     onClick={() => redeemReward(reward.id)}
                     disabled={!canAfford}
-                    className={`mt-auto w-full text-xs py-1.5 rounded transition-colors font-medium ${
+                    style={canAfford ? { backgroundColor: 'var(--accent)' } : undefined}
+                    className={`mt-auto w-full text-xs py-1.5 rounded font-medium ${
                       canAfford
-                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        ? 'text-white hover:opacity-90 transition-opacity'
                         : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                     }`}
                   >
@@ -174,7 +175,7 @@ export default function Rewards() {
               >
                 <span className="text-xl">{reward.icon}</span>
                 <span className="flex-1 text-sm text-zinc-400 line-through">{reward.title}</span>
-                <CheckCheck size={14} className="text-emerald-600" />
+                <CheckCheck size={14} className="text-[var(--accent)]" />
                 <span className="text-xs text-zinc-700">{reward.cost.toLocaleString()} XP</span>
               </div>
             ))}

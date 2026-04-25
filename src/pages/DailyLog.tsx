@@ -68,7 +68,7 @@ export default function DailyLog() {
           </button>
           <div className="text-center min-w-[200px]">
             <p className="text-base font-medium text-zinc-100">{formatDisplayDate(selectedDate)}</p>
-            {isToday && <p className="text-xs text-emerald-500 mt-0.5">Today</p>}
+            {isToday && <p className="text-xs text-[var(--accent)] mt-0.5">Today</p>}
           </div>
           <button
             onClick={() => shiftDate(1)}
@@ -160,10 +160,10 @@ export default function DailyLog() {
 
           <div className="flex items-center justify-between pt-1">
             <span className="text-xs text-zinc-500">
-              Earns: <span className="text-emerald-400 font-medium">+{previewXP} XP</span>
+              Earns: <span className="text-[var(--accent)] font-medium">+{previewXP} XP</span>
               {form.duration >= 60 && <span className="text-zinc-600 ml-1">(1.5× bonus)</span>}
             </span>
-            <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-1.5 rounded transition-colors">
+            <button type="submit" className="text-white text-sm px-4 py-1.5 rounded transition-opacity hover:opacity-90" style={{ backgroundColor: 'var(--accent)' }}>
               Add Log
             </button>
           </div>
@@ -174,7 +174,7 @@ export default function DailyLog() {
       {dayLogs.length > 0 && (
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-zinc-600">{dayLogs.length} {dayLogs.length === 1 ? 'entry' : 'entries'}</p>
-          <p className="text-xs text-emerald-600">+{dayLogs.reduce((s, l) => s + l.xpEarned, 0)} XP total</p>
+          <p className="text-xs text-[var(--accent)]">+{dayLogs.reduce((s, l) => s + l.xpEarned, 0)} XP total</p>
         </div>
       )}
 
@@ -243,7 +243,7 @@ export default function DailyLog() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                  <span className="text-sm text-emerald-500">+{log.xpEarned} XP</span>
+                  <span className="text-sm text-[var(--accent)]">+{log.xpEarned} XP</span>
                   <button
                     onClick={() => startEdit(log)}
                     className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-zinc-300 transition-all"

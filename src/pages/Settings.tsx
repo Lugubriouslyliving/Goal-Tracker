@@ -178,7 +178,8 @@ export default function Settings() {
                     max={max}
                     value={settings[key as keyof typeof settings] as number}
                     onChange={(e) => settings.set({ [key]: Number(e.target.value) } as never)}
-                    className="w-full accent-emerald-500"
+                    className="w-full"
+                    style={{ accentColor: 'var(--accent)' }}
                   />
                   <div className="flex justify-between text-xs text-zinc-700 mt-0.5">
                     <span>{min}</span><span>{max}</span>
@@ -193,9 +194,8 @@ export default function Settings() {
                 </div>
                 <button
                   onClick={() => settings.set({ soundEnabled: !settings.soundEnabled })}
-                  className={`w-10 h-6 rounded-full transition-colors relative ${
-                    settings.soundEnabled ? 'bg-emerald-600' : 'bg-zinc-700'
-                  }`}
+                  className="w-10 h-6 rounded-full transition-colors relative"
+                  style={{ backgroundColor: settings.soundEnabled ? 'var(--accent)' : '#3f3f46' }}
                 >
                   <span
                     className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
@@ -225,7 +225,8 @@ export default function Settings() {
                     step={5}
                     value={settings.xpRates[cat]}
                     onChange={(e) => settings.setXpRate(cat, Number(e.target.value))}
-                    className="w-full accent-emerald-500"
+                    className="w-full"
+                    style={{ accentColor: 'var(--accent)' }}
                   />
                   <div className="flex justify-between text-xs text-zinc-700 mt-0.5">
                     <span>5</span><span>200</span>
