@@ -1,20 +1,17 @@
 import { useMemo } from 'react';
-import {
-  BarChart, Bar, XAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
-} from 'recharts';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useStore, selectGrandTotalXP } from '../store';
-import { formatDate, selectStreak, categoryHex } from '../utils';
+import { formatDate, selectStreak, categoryHex, ACHIEVEMENT_DEFS } from '../utils';
 import type { Category } from '../types';
 
 export default function Stats() {
-  const { logs, goals } = useStore();
+  const { logs, goals, unlockedAchievements, pomodorosCompleted } = useStore();
 
   const totalXP = selectGrandTotalXP(logs, goals);
   const streak = selectStreak(logs);
   const completedGoals = goals.filter((g) => g.completed).length;
+  const unlockedSet = new Set(unlockedAchievements.map((a) => a.id));
 
-  // Heatmap: last 84 days (12 weeks)
   const heatmap = useMemo(() => {
     const logsByDate = new Map<string, number>();
     logs.forEach((l) => logsByDate.set(l.date, (logsByDate.get(l.date) || 0) + l.xpEarned));
@@ -27,40 +24,29 @@ export default function Stats() {
     });
   }, [logs]);
 
-  // Weekly XP (last 8 weeks)
-  const weeklyXP = useMemo(() => {
-    return Array.from({ length: 8 }, (_, w) => {
+  const weeklyXP = useMemo(() =>
+    Array.from({ length: 8 }, (_, w) => {
       const end = new Date();
       end.setDate(end.getDate() - w * 7);
       const start = new Date(end);
       start.setDate(end.getDate() - 6);
       const xp = logs
-        .filter((l) => {
-          const d = l.date;
-          return d >= formatDate(start) && d <= formatDate(end);
-        })
+        .filter((l) => l.date >= formatDate(start) && l.date <= formatDate(end))
         .reduce((s, l) => s + l.xpEarned, 0);
-      return { week: `W-${w === 0 ? 'now' : w}`, xp };
-    }).reverse();
-  }, [logs]);
+      return { week: w === 0 ? 'Now' : `-${w}w`, xp };
+    }).reverse(),
+  [logs]);
 
-  // Category breakdown
   const categoryData = useMemo(() => {
     const counts: Partial<Record<Category, number>> = {};
-    logs.forEach((l) => {
-      counts[l.category] = (counts[l.category] || 0) + l.xpEarned;
-    });
+    logs.forEach((l) => { counts[l.category] = (counts[l.category] || 0) + l.xpEarned; });
     return Object.entries(counts).map(([name, value]) => ({ name, value: value as number }));
   }, [logs]);
 
-  // Most active day of week
   const dayOfWeekData = useMemo(() => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const counts = Array(7).fill(0);
-    logs.forEach((l) => {
-      const d = new Date(l.date + 'T00:00:00');
-      counts[d.getDay()] += l.xpEarned;
-    });
+    logs.forEach((l) => { counts[new Date(l.date + 'T00:00:00').getDay()] += l.xpEarned; });
     return days.map((day, i) => ({ day, xp: counts[i] }));
   }, [logs]);
 
@@ -82,12 +68,12 @@ export default function Stats() {
     <div className="p-6 max-w-3xl mx-auto">
       <h2 className="text-xl font-semibold text-zinc-100 mb-6">Stats</h2>
 
-      {/* Summary row */}
+      {/* Summary */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Total XP', value: totalXP.toLocaleString() },
-          { label: 'Total Logs', value: logs.length.toString() },
-          { label: 'Current Streak', value: `${streak}d` },
+          { label: 'Total XP',        value: totalXP.toLocaleString() },
+          { label: 'Total Logs',      value: logs.length.toString() },
+          { label: 'Current Streak',  value: `${streak}d` },
           { label: 'Goals Completed', value: completedGoals.toString() },
         ].map(({ label, value }) => (
           <div key={label} className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4 text-center">
@@ -123,9 +109,8 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        {/* Weekly XP */}
+      {/* Charts */}
+      <div className="grid grid-cols-2 gap-4 mb-5">
         <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
           <h3 className="text-sm text-zinc-400 mb-3">Weekly XP</h3>
           {logs.length === 0 ? (
@@ -141,7 +126,6 @@ export default function Stats() {
           )}
         </div>
 
-        {/* Category breakdown */}
         <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
           <h3 className="text-sm text-zinc-400 mb-3">By Category</h3>
           {categoryData.length === 0 ? (
@@ -150,20 +134,9 @@ export default function Stats() {
             <>
               <ResponsiveContainer width="100%" height={110}>
                 <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={32}
-                    outerRadius={50}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
+                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={32} outerRadius={50} paddingAngle={2} dataKey="value">
                     {categoryData.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={categoryHex[entry.name as Category] || '#6b7280'}
-                      />
+                      <Cell key={entry.name} fill={categoryHex[entry.name as Category] || '#6b7280'} />
                     ))}
                   </Pie>
                   <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} XP`, '']} />
@@ -172,10 +145,7 @@ export default function Stats() {
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
                 {categoryData.map((entry) => (
                   <div key={entry.name} className="flex items-center gap-1.5 text-xs text-zinc-500">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: categoryHex[entry.name as Category] }}
-                    />
+                    <div className="w-2 h-2 rounded-full" style={{ background: categoryHex[entry.name as Category] }} />
                     {entry.name}
                   </div>
                 ))}
@@ -185,8 +155,7 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* Day of week */}
-      <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
+      <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4 mb-5">
         <h3 className="text-sm text-zinc-400 mb-3">XP by Day of Week</h3>
         {logs.length === 0 ? (
           <p className="text-xs text-zinc-700 text-center py-8">No data yet</p>
@@ -199,6 +168,39 @@ export default function Stats() {
             </BarChart>
           </ResponsiveContainer>
         )}
+      </div>
+
+      {/* Achievements */}
+      <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm text-zinc-400">Achievements</h3>
+          <span className="text-xs text-zinc-600">
+            {unlockedAchievements.length} / {ACHIEVEMENT_DEFS.length} unlocked
+            {pomodorosCompleted > 0 && <span className="ml-2 text-zinc-700">· {pomodorosCompleted} 🍅</span>}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {ACHIEVEMENT_DEFS.map((def) => {
+            const unlock = unlockedAchievements.find((a) => a.id === def.id);
+            return (
+              <div
+                key={def.id}
+                className={`p-3 rounded-lg border transition-colors ${
+                  unlock ? 'bg-zinc-800/80 border-zinc-700' : 'border-zinc-800/60 opacity-35'
+                }`}
+              >
+                <div className="text-2xl mb-1.5">{def.icon}</div>
+                <div className="text-xs font-medium text-zinc-200">{def.label}</div>
+                <div className="text-xs text-zinc-600 mt-0.5 leading-relaxed">{def.desc}</div>
+                {unlock && (
+                  <div className="text-xs text-emerald-700 mt-1.5">
+                    {new Date(unlock.unlockedAt).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

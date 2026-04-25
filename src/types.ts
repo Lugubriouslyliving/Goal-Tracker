@@ -24,6 +24,7 @@ export interface Goal {
   completed: boolean;
   createdAt: number;
   completedAt?: number;
+  lastResetAt?: number;
 }
 
 export interface Reward {
@@ -35,4 +36,9 @@ export interface Reward {
   redeemed: boolean;
   redeemedAt?: number;
   createdAt: number;
+}
+
+export interface UnlockedAchievement {
+  id: string;
+  unlockedAt: number;
 }

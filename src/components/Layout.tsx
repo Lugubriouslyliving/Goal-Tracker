@@ -1,5 +1,7 @@
-import { LayoutDashboard, CalendarDays, Target, Gift, BarChart2 } from 'lucide-react';
+import { useState } from 'react';
+import { LayoutDashboard, CalendarDays, Target, Gift, BarChart2, Timer } from 'lucide-react';
 import type { Page } from '../App';
+import PomodoroTimer from './PomodoroTimer';
 
 interface Props {
   currentPage: Page;
@@ -9,13 +11,15 @@ interface Props {
 
 const NAV_ITEMS: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'log', label: 'Daily Log', icon: CalendarDays },
-  { id: 'goals', label: 'Goals', icon: Target },
-  { id: 'rewards', label: 'Rewards', icon: Gift },
-  { id: 'stats', label: 'Stats', icon: BarChart2 },
+  { id: 'log',       label: 'Daily Log',  icon: CalendarDays },
+  { id: 'goals',     label: 'Goals',      icon: Target },
+  { id: 'rewards',   label: 'Rewards',    icon: Gift },
+  { id: 'stats',     label: 'Stats',      icon: BarChart2 },
 ];
 
 export default function Layout({ currentPage, onNavigate, children }: Props) {
+  const [showPomodoro, setShowPomodoro] = useState(false);
+
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
       <aside className="w-52 flex-shrink-0 border-r border-zinc-800/60 flex flex-col">
@@ -45,14 +49,23 @@ export default function Layout({ currentPage, onNavigate, children }: Props) {
           ))}
         </nav>
 
-        <div className="px-5 py-4 border-t border-zinc-800/60">
-          <p className="text-xs text-zinc-600">Track. Earn. Reward.</p>
+        <div className="p-3 border-t border-zinc-800/60 space-y-0.5">
+          <button
+            onClick={() => setShowPomodoro(true)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors"
+          >
+            <Timer size={15} />
+            Pomodoro
+          </button>
+          <p className="text-xs text-zinc-700 px-3 pt-1">Track. Earn. Reward.</p>
         </div>
       </aside>
 
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
+
+      {showPomodoro && <PomodoroTimer onClose={() => setShowPomodoro(false)} />}
     </div>
   );
 }

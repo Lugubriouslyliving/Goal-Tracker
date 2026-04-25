@@ -89,7 +89,7 @@ export default function Rewards() {
             <input
               type="number"
               min={10}
-              step={50}
+              step={10}
               value={form.cost}
               onChange={(e) => setForm({ ...form, cost: Number(e.target.value) })}
               className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500"
