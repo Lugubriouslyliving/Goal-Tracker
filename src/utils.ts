@@ -43,8 +43,14 @@ export const XP_PER_CATEGORY: Record<Category, number> = {
   other: 25,
 };
 
-export const calcXP = (category: Category, duration: number): number =>
-  Math.round(XP_PER_CATEGORY[category] * (duration >= 60 ? 1.5 : 1));
+export const calcXP = (
+  category: Category,
+  duration: number,
+  rates?: Partial<Record<Category, number>>,
+): number => {
+  const rate = rates?.[category] ?? XP_PER_CATEGORY[category];
+  return Math.round(rate * (duration >= 60 ? 1.5 : 1));
+};
 
 export const selectTotalXP = (logs: LogEntry[]): number =>
   logs.reduce((s, l) => s + l.xpEarned, 0);

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Play, Pause, RotateCcw, SkipForward } from 'lucide-react';
 import { useStore } from '../store';
-import { XP_PER_CATEGORY, formatDate } from '../utils';
+import { useSettings } from '../store/settings';
+import { formatDate } from '../utils';
 import type { Category } from '../types';
 
 interface Props {
@@ -10,16 +11,33 @@ interface Props {
 
 type Mode = 'work' | 'break';
 
-const WORK_SECS = 25 * 60;
-const SHORT_BREAK = 5 * 60;
-const LONG_BREAK = 15 * 60;
 const CATEGORIES: Category[] = ['coding', 'fitness', 'learning', 'other'];
+
+function playBeep(freq = 880, duration = 0.4) {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch { /* AudioContext not available */ }
+}
 
 export default function PomodoroTimer({ onClose }: Props) {
   const { incrementPomodoros, addLog, goals, incrementGoals, pomodorosCompleted } = useStore();
+  const settings = useSettings();
+
+  const workSecs = settings.workDuration * 60;
+  const shortBreakSecs = settings.shortBreak * 60;
+  const longBreakSecs = settings.longBreak * 60;
 
   const [mode, setMode] = useState<Mode>('work');
-  const [timeLeft, setTimeLeft] = useState(WORK_SECS);
+  const [timeLeft, setTimeLeft] = useState(workSecs);
   const [running, setRunning] = useState(false);
   const [sessionsDone, setSessionsDone] = useState(0);
   const [timerEnded, setTimerEnded] = useState(false);
@@ -32,8 +50,11 @@ export default function PomodoroTimer({ onClose }: Props) {
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { sessionsDoneRef.current = sessionsDone; }, [sessionsDone]);
 
-  const breakDuration = (sessionsDoneRef.current + 1) % 4 === 0 ? LONG_BREAK : SHORT_BREAK;
-  const totalTime = mode === 'work' ? WORK_SECS : breakDuration;
+  const breakDuration =
+    (sessionsDoneRef.current + 1) % settings.longBreakInterval === 0
+      ? longBreakSecs
+      : shortBreakSecs;
+  const totalTime = mode === 'work' ? workSecs : breakDuration;
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
   const circumference = 2 * Math.PI * 54;
 
@@ -55,20 +76,23 @@ export default function PomodoroTimer({ onClose }: Props) {
     if (!timerEnded) return;
     setTimerEnded(false);
     setRunning(false);
+    if (settings.soundEnabled) playBeep();
     if (modeRef.current === 'work') {
       incrementPomodoros();
       setSessionsDone((s) => s + 1);
       setShowLog(true);
     } else {
       setMode('work');
-      setTimeLeft(WORK_SECS);
+      setTimeLeft(workSecs);
     }
-  }, [timerEnded, incrementPomodoros]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerEnded]);
 
   const switchToBreak = () => {
-    const isLong = (sessionsDoneRef.current) % 4 === 0 && sessionsDoneRef.current > 0;
+    const sessions = sessionsDoneRef.current;
+    const isLong = sessions > 0 && sessions % settings.longBreakInterval === 0;
     setMode('break');
-    setTimeLeft(isLong ? LONG_BREAK : SHORT_BREAK);
+    setTimeLeft(isLong ? longBreakSecs : shortBreakSecs);
     setRunning(false);
     setShowLog(false);
     setLogForm({ activityName: '', category: 'coding', note: '' });
@@ -77,7 +101,7 @@ export default function PomodoroTimer({ onClose }: Props) {
 
   const reset = () => {
     setRunning(false);
-    setTimeLeft(mode === 'work' ? WORK_SECS : breakDuration);
+    setTimeLeft(mode === 'work' ? workSecs : breakDuration);
   };
 
   const skipToEnd = () => {
@@ -89,7 +113,7 @@ export default function PomodoroTimer({ onClose }: Props) {
   const handleLogSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (logForm.activityName.trim()) {
-      addLog({ date: formatDate(new Date()), ...logForm, duration: 25 });
+      addLog({ date: formatDate(new Date()), ...logForm, duration: settings.workDuration });
       if (selectedGoals.length > 0) incrementGoals(selectedGoals);
     }
     switchToBreak();
@@ -99,9 +123,10 @@ export default function PomodoroTimer({ onClose }: Props) {
     setSelectedGoals((prev) => prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]);
 
   const matchingGoals = goals.filter((g) => !g.completed && g.category === logForm.category);
+  const xpRates = useSettings.getState().xpRates;
   const mm = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const ss = String(timeLeft % 60).padStart(2, '0');
-  const accentColor = mode === 'work' ? '#10b981' : '#8b5cf6';
+  const accentColor = mode === 'work' ? 'var(--accent)' : '#8b5cf6';
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
@@ -120,7 +145,11 @@ export default function PomodoroTimer({ onClose }: Props) {
               {(['work', 'break'] as Mode[]).map((m) => (
                 <button
                   key={m}
-                  onClick={() => { setMode(m); setTimeLeft(m === 'work' ? WORK_SECS : SHORT_BREAK); setRunning(false); }}
+                  onClick={() => {
+                    setMode(m);
+                    setTimeLeft(m === 'work' ? workSecs : shortBreakSecs);
+                    setRunning(false);
+                  }}
                   className={`text-xs px-3 py-1 rounded-full transition-colors ${
                     mode === m ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-600 hover:text-zinc-400'
                   }`}
@@ -177,7 +206,6 @@ export default function PomodoroTimer({ onClose }: Props) {
             </div>
           </>
         ) : (
-          /* Post-session log form */
           <div>
             <div className="text-center mb-4">
               <div className="text-3xl mb-2">🍅</div>
@@ -201,7 +229,7 @@ export default function PomodoroTimer({ onClose }: Props) {
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c.charAt(0).toUpperCase() + c.slice(1)} — {XP_PER_CATEGORY[c]} XP
+                    {c.charAt(0).toUpperCase() + c.slice(1)} — {xpRates[c]} XP
                   </option>
                 ))}
               </select>

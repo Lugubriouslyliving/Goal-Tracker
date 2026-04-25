@@ -5,6 +5,8 @@ import {
   calcXP, selectTotalXP, selectStreak, selectLevel,
   getWeekStart, getMonthStart, formatDate, ACHIEVEMENT_DEFS,
 } from './utils';
+import { db } from './lib/db';
+import { useSettings } from './store/settings';
 
 interface Store {
   logs: LogEntry[];
@@ -12,6 +14,21 @@ interface Store {
   rewards: Reward[];
   unlockedAchievements: UnlockedAchievement[];
   pomodorosCompleted: number;
+  userId: string | null;
+  isLocalMode: boolean;
+  isLoading: boolean;
+
+  setUserId: (uid: string | null) => void;
+  setLocalMode: (val: boolean) => void;
+  initializeFromSupabase: (uid: string) => Promise<void>;
+  clearLocalData: () => void;
+  importData: (data: {
+    logs: LogEntry[];
+    goals: Goal[];
+    rewards: Reward[];
+    unlockedAchievements: UnlockedAchievement[];
+    pomodorosCompleted: number;
+  }) => void;
 
   addLog: (entry: { date: string; activityName: string; category: Category; duration: number; note: string }) => void;
   editLog: (id: string, updates: Partial<Pick<LogEntry, 'activityName' | 'category' | 'duration' | 'note'>>) => void;
@@ -39,30 +56,87 @@ export const useStore = create<Store>()(
       rewards: [],
       unlockedAchievements: [],
       pomodorosCompleted: 0,
+      userId: null,
+      isLocalMode: false,
+      isLoading: false,
+
+      setUserId: (uid) => set({ userId: uid }),
+
+      setLocalMode: (val) => set({ isLocalMode: val }),
+
+      initializeFromSupabase: async (uid) => {
+        set({ isLoading: true });
+        try {
+          const [logs, goals, rewards, achievements, profile] = await Promise.all([
+            db.logs.getAll(uid),
+            db.goals.getAll(uid),
+            db.rewards.getAll(uid),
+            db.achievements.getAll(uid),
+            db.profile.get(uid),
+          ]);
+          set({
+            logs,
+            goals,
+            rewards,
+            unlockedAchievements: achievements,
+            pomodorosCompleted: profile?.pomodoros_completed ?? 0,
+            userId: uid,
+          });
+          if (profile?.display_name) {
+            useSettings.getState().set({ displayName: profile.display_name });
+          }
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      clearLocalData: () =>
+        set({
+          logs: [],
+          goals: [],
+          rewards: [],
+          unlockedAchievements: [],
+          pomodorosCompleted: 0,
+        }),
+
+      importData: (data) => set(data),
 
       addLog: (entry) => {
+        const rates = useSettings.getState().xpRates;
         const newLog: LogEntry = {
           ...entry,
           id: crypto.randomUUID(),
           timestamp: Date.now(),
-          xpEarned: calcXP(entry.category, entry.duration),
+          xpEarned: calcXP(entry.category, entry.duration, rates),
         };
         set((s) => ({ logs: [newLog, ...s.logs] }));
+        const { userId } = get();
+        if (userId) db.logs.insert(userId, newLog).catch(() => {});
         get().checkAchievements();
       },
 
       editLog: (id, updates) => {
+        const rates = useSettings.getState().xpRates;
         set((s) => ({
           logs: s.logs.map((l) => {
             if (l.id !== id) return l;
             const updated = { ...l, ...updates };
-            updated.xpEarned = calcXP(updated.category, updated.duration);
+            updated.xpEarned = calcXP(updated.category, updated.duration, rates);
             return updated;
           }),
         }));
+        const { userId, logs } = get();
+        if (userId) {
+          const log = logs.find((l) => l.id === id);
+          if (log) db.logs.update(userId, log).catch(() => {});
+        }
       },
 
-      deleteLog: (id) => set((s) => ({ logs: s.logs.filter((l) => l.id !== id) })),
+      deleteLog: (id) => {
+        set((s) => ({ logs: s.logs.filter((l) => l.id !== id) }));
+        const { userId } = get();
+        if (userId) db.logs.delete(id).catch(() => {});
+      },
 
       addGoal: (goal) => {
         const now = Date.now();
@@ -75,6 +149,8 @@ export const useStore = create<Store>()(
           completed: false,
         };
         set((s) => ({ goals: [newGoal, ...s.goals] }));
+        const { userId } = get();
+        if (userId) db.goals.insert(userId, newGoal).catch(() => {});
       },
 
       incrementGoal: (id) => {
@@ -86,6 +162,11 @@ export const useStore = create<Store>()(
             return { ...g, currentCount: newCount, completed, completedAt: completed ? Date.now() : undefined };
           }),
         }));
+        const { userId, goals } = get();
+        if (userId) {
+          const goal = goals.find((g) => g.id === id);
+          if (goal) db.goals.update(userId, goal).catch(() => {});
+        }
         get().checkAchievements();
       },
 
@@ -99,10 +180,20 @@ export const useStore = create<Store>()(
             return { ...g, currentCount: newCount, completed, completedAt: completed ? Date.now() : undefined };
           }),
         }));
+        const { userId, goals } = get();
+        if (userId) {
+          goals
+            .filter((g) => ids.includes(g.id))
+            .forEach((g) => db.goals.update(userId, g).catch(() => {}));
+        }
         get().checkAchievements();
       },
 
-      deleteGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
+      deleteGoal: (id) => {
+        set((s) => ({ goals: s.goals.filter((g) => g.id !== id) }));
+        const { userId } = get();
+        if (userId) db.goals.delete(id).catch(() => {});
+      },
 
       resetGoalsIfDue: () => {
         const now = new Date();
@@ -121,6 +212,10 @@ export const useStore = create<Store>()(
             return { ...g, currentCount: 0, completed: false, completedAt: undefined, lastResetAt: Date.now() };
           }),
         }));
+        const { userId, goals } = get();
+        if (userId) {
+          goals.forEach((g) => db.goals.update(userId, g).catch(() => {}));
+        }
       },
 
       addReward: (reward) => {
@@ -131,6 +226,8 @@ export const useStore = create<Store>()(
           redeemed: false,
         };
         set((s) => ({ rewards: [newReward, ...s.rewards] }));
+        const { userId } = get();
+        if (userId) db.rewards.insert(userId, newReward).catch(() => {});
       },
 
       redeemReward: (id) => {
@@ -144,13 +241,22 @@ export const useStore = create<Store>()(
             r.id === id ? { ...r, redeemed: true, redeemedAt: Date.now() } : r
           ),
         }));
+        const { userId } = get();
+        if (userId) {
+          const updated = get().rewards.find((r) => r.id === id);
+          if (updated) db.rewards.update(userId, updated).catch(() => {});
+        }
         get().checkAchievements();
       },
 
-      deleteReward: (id) => set((s) => ({ rewards: s.rewards.filter((r) => r.id !== id) })),
+      deleteReward: (id) => {
+        set((s) => ({ rewards: s.rewards.filter((r) => r.id !== id) }));
+        const { userId } = get();
+        if (userId) db.rewards.delete(id).catch(() => {});
+      },
 
       checkAchievements: () => {
-        const { logs, goals, rewards, unlockedAchievements, pomodorosCompleted } = get();
+        const { logs, goals, rewards, unlockedAchievements, pomodorosCompleted, userId } = get();
         const unlocked = new Set(unlockedAchievements.map((a) => a.id));
         const totalXP = selectTotalXP(logs) + goals.filter((g) => g.completed).reduce((s, g) => s + g.xpReward, 0);
         const streak = selectStreak(logs);
@@ -181,15 +287,33 @@ export const useStore = create<Store>()(
 
         if (newUnlocks.length > 0) {
           set((s) => ({ unlockedAchievements: [...s.unlockedAchievements, ...newUnlocks] }));
+          if (userId) {
+            newUnlocks.forEach((a) => db.achievements.insert(userId, a).catch(() => {}));
+          }
         }
       },
 
       incrementPomodoros: () => {
         set((s) => ({ pomodorosCompleted: s.pomodorosCompleted + 1 }));
+        const { userId, pomodorosCompleted } = get();
+        if (userId) {
+          db.profile.upsert(userId, { pomodoros_completed: pomodorosCompleted }).catch(() => {});
+        }
         get().checkAchievements();
       },
     }),
-    { name: 'goal-tracker-v1' }
+    {
+      name: 'goal-tracker-v1',
+      partialize: (s) => ({
+        logs: s.logs,
+        goals: s.goals,
+        rewards: s.rewards,
+        unlockedAchievements: s.unlockedAchievements,
+        pomodorosCompleted: s.pomodorosCompleted,
+        userId: s.userId,
+        isLocalMode: s.isLocalMode,
+      }),
+    }
   )
 );
 

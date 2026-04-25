@@ -1,0 +1,29 @@
+[package]
+name = "goal-tracker"
+version = "0.1.0"
+description = "Goal Tracker — track activities, earn XP, redeem rewards"
+authors = ["Punnawat Sombhongchaiyakul"]
+license = ""
+repository = ""
+default-run = "goal-tracker"
+edition = "2021"
+
+[lib]
+name = "goal_tracker_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

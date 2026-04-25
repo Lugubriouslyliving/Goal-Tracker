@@ -1,5 +1,6 @@
 import { Zap, Flame, BookOpen, Trophy, ArrowRight } from 'lucide-react';
 import { useStore, selectAvailableXP, selectGrandTotalXP } from '../store';
+import { useSettings } from '../store/settings';
 import { formatDate, getGreeting, categoryBadge, selectLevel, selectXPInLevel, selectStreak } from '../utils';
 import type { Page } from '../App';
 
@@ -9,6 +10,7 @@ interface Props {
 
 export default function Dashboard({ onNavigate }: Props) {
   const { logs, goals, rewards } = useStore();
+  const { displayName } = useSettings();
 
   const today = formatDate(new Date());
   const todayLogs = logs.filter((l) => l.date === today);
@@ -22,7 +24,9 @@ export default function Dashboard({ onNavigate }: Props) {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-7">
-        <h2 className="text-2xl font-semibold text-zinc-100">{getGreeting()}</h2>
+        <h2 className="text-2xl font-semibold text-zinc-100">
+          {getGreeting()}{displayName ? ` ${displayName}.` : ''}
+        </h2>
         <p className="text-zinc-500 mt-1 text-sm">Here's your progress overview.</p>
       </div>
 

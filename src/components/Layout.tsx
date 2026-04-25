@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, CalendarDays, Target, Gift, BarChart2, Timer } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Target, Gift, BarChart2, Timer, Settings } from 'lucide-react';
 import type { Page } from '../App';
 import PomodoroTimer from './PomodoroTimer';
 
@@ -56,6 +56,17 @@ export default function Layout({ currentPage, onNavigate, children }: Props) {
           >
             <Timer size={15} />
             Pomodoro
+          </button>
+          <button
+            onClick={() => onNavigate('settings')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              currentPage === 'settings'
+                ? 'bg-zinc-800 text-zinc-100'
+                : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
+          >
+            <Settings size={15} />
+            Settings
           </button>
           <p className="text-xs text-zinc-700 px-3 pt-1">Track. Earn. Reward.</p>
         </div>

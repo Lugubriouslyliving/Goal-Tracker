@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --accent: #10b981;
+}
+
 * {
   box-sizing: border-box;
 }
